@@ -91,6 +91,32 @@ func newImg(rd *bufio.Reader) (ppmImg, error) {
 	return p, nil
 }
 
+func writeImg(p ppmImg, filename string) error {
+	var data []byte
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+
+	header := fmt.Sprintf("P6 %d %d %d ", p.w, p.h, p.max)
+
+	file.WriteString(header)
+
+	for _, e := range p.data {
+		data = append(data, e.r)
+		data = append(data, e.g)
+		data = append(data, e.b)
+	}
+
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	file, err := os.Open("p3.ppm")
 	if err != nil {
@@ -119,4 +145,10 @@ func main() {
 	fmt.Printf("image size:\n\tw: %v\n\th: %v\n", p.w, p.h)
 	fmt.Printf("maximum value for pixel: %d\n", p.max)
 	fmt.Printf("amount of pixels: %d\n", len(p.data))
+
+	err = writeImg(p, "p6.ppm")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
