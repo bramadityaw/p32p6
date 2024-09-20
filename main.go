@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 )
@@ -17,20 +16,36 @@ type ppmImg struct {
 	data []*pixel
 }
 
-func newImg(f *os.File) ppmImg {
+func parseU8(r *bufio.Reader) (uint8, error) {
+	n, err := parseU64(r)
+	if err != nil {
+		return 0, err
+	}
+	return uint8(n), nil
+}
+
+func parseU64(r *bufio.Reader) (uint64, error) {
+	b, err := r.ReadBytes(' ')
+	if err != nil {
+		return 0, err
+	}
+	n, err := strconv.ParseUint(string(b[:len(b)-1]), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return n, nil
+}
+
+func newImg(r *bufio.Reader) ppmImg {
 	var p ppmImg
 
-	size := make([]byte, 3)
-
-	//TODO: Find a way to read until a certain rune; which in this case is ' '.
-	f.Read(size)
-	w, err := strconv.ParseUint(string(size)[1:],
-		10, 64)
-	f.Read(size)
-	h, err := strconv.ParseUint(string(size)[1:], 10, 64)
+	w, err := parseU64(r)
+	h, err := parseU64(r)
 
 	if err != nil {
-		log.Fatal("Unknown file size!")
+		fmt.Println("Unknown file size!")
+		os.Exit(1)
 	}
 
 	p.w = w
@@ -42,21 +57,22 @@ func newImg(f *os.File) ppmImg {
 func main() {
 	file, err := os.Open("p3.ppm")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err.Error())
+		return
 	}
 	defer file.Close()
 
-	ptype := make([]byte, 2)
-	file.Read(ptype)
+	f_reader := bufio.NewReader(file)
+	b, err := f_reader.ReadBytes(' ')
+
+	ptype := string(b[:len(b)-1])
 
 	if string(ptype) != "P3" {
 		fmt.Printf("%s is an invalid ASCII image PPM file!\nWrong magic number %s.", file.Name(), string(ptype))
 		os.Exit(1)
 	}
 
-	p := newImg(file)
+	p := newImg(f_reader)
 	fmt.Printf("image size:\n\tw: %v\n\th: %v\n", p.w, p.h)
-
-	buf := bytes.Buffer{}
-	buf.WriteString("P6 ")
+	fmt.Printf("amount of pixels: %d\n", len(p.data))
 }
