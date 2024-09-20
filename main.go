@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -118,7 +119,17 @@ func writeImg(p ppmImg, filename string) error {
 }
 
 func main() {
-	file, err := os.Open("p3.ppm")
+	args := os.Args[1:]
+
+	if len(args) == 0 || args[0] == "--help" || args[0] == "-h" {
+		fmt.Println("Usage:")
+		fmt.Println("\tp32p6 image.ppm")
+		return
+	}
+
+	filename := args[0]
+
+	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -146,7 +157,7 @@ func main() {
 	fmt.Printf("maximum value for pixel: %d\n", p.max)
 	fmt.Printf("amount of pixels: %d\n", len(p.data))
 
-	err = writeImg(p, "p6.ppm")
+	err = writeImg(p, filename[:len(filename)-len(filepath.Ext(filename))]+"_1"+filepath.Ext(file.Name()))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
