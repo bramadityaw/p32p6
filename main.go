@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 )
@@ -38,11 +39,11 @@ func parseU64(r *bufio.Reader) (uint64, error) {
 	return n, nil
 }
 
-func newImg(r *bufio.Reader) ppmImg {
+func newImg(rd *bufio.Reader) (ppmImg, error) {
 	var p ppmImg
 
-	w, err := parseU64(r)
-	h, err := parseU64(r)
+	w, err := parseU64(rd)
+	h, err := parseU64(rd)
 
 	if err != nil {
 		fmt.Println("Unknown file size!")
@@ -52,14 +53,42 @@ func newImg(r *bufio.Reader) ppmImg {
 	p.w = w
 	p.h = h
 
-	m, err := parseU64(r)
+	m, err := parseU64(rd)
 	if err != nil {
 		fmt.Println("Maximum value cannot be determined!")
 		os.Exit(1)
 	}
 	p.max = m
 
-	return p
+	for {
+		px := new(pixel)
+
+		r, _ := parseU8(rd)
+		g, _ := parseU8(rd)
+		b, err := parseU8(rd)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+		}
+
+		if (r+g+b)/3 > uint8(p.max) {
+			fmt.Println("Pixel too large!")
+			continue
+		}
+
+		px.r = r
+		px.g = g
+		px.b = b
+
+		p.data = append(p.data, px)
+	}
+
+	if len(p.data) != int(p.w*p.h) {
+		return p, fmt.Errorf("Size of image not as promised!")
+	}
+
+	return p, nil
 }
 
 func main() {
@@ -80,7 +109,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	p := newImg(f_reader)
+	p, err := newImg(f_reader)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	fmt.Printf("image size:\n\tw: %v\n\th: %v\n", p.w, p.h)
 	fmt.Printf("maximum value for pixel: %d\n", p.max)
 	fmt.Printf("amount of pixels: %d\n", len(p.data))
