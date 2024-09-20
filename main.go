@@ -13,6 +13,7 @@ type pixel struct {
 
 type ppmImg struct {
 	w, h uint64
+	max  uint64
 	data []*pixel
 }
 
@@ -51,6 +52,13 @@ func newImg(r *bufio.Reader) ppmImg {
 	p.w = w
 	p.h = h
 
+	m, err := parseU64(r)
+	if err != nil {
+		fmt.Println("Maximum value cannot be determined!")
+		os.Exit(1)
+	}
+	p.max = m
+
 	return p
 }
 
@@ -74,5 +82,6 @@ func main() {
 
 	p := newImg(f_reader)
 	fmt.Printf("image size:\n\tw: %v\n\th: %v\n", p.w, p.h)
+	fmt.Printf("maximum value for pixel: %d\n", p.max)
 	fmt.Printf("amount of pixels: %d\n", len(p.data))
 }
